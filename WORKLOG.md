@@ -13,6 +13,8 @@
 ## Process — хронология промптов
 
 <!-- AUTO: сюда хук дописывает саммари каждого ввода пользователя -->
+- [2026-06-03 19:14] prompt: <ide_selection>The user selected the lines 156 to 156 from /Users/kotkoa/.claude/plans/client-onboarding-csv-candidate-instruc-glistening-wigderson.md: Шаг 2 This may or may not be related to the current task.</ide_selection> Шаг 2 /code-review
+- [2026-06-03 18:31] prompt: <ide_selection>The user selected the lines 161 to 161 from /Users/kotkoa/.claude/plans/client-onboarding-csv-candidate-instruc-glistening-wigderson.md: frontend-developer This may or may not be related to the current task.</ide_selection> @/Users/kotkoa/.claude/plans/client-onboa
 
 > Записи `[retro]` ниже восстановлены вручную — относятся к промптам ДО того, как заработал hook (Шаг 0).
 
@@ -42,6 +44,8 @@
 - [step-0] Hook `worklog-prompt.sh` протестирован на 4 кейсах (обычный промпт, slash-команда, пустой ввод, битый JSON) — все exit=0, мусора в чат нет, многострочный prompt схлопывается в одну строку под AUTO-маркером. Скилл `/worklog` и `UserPromptSubmit` hook зарегистрированы в `.claude/settings.local.json`. AC Шага 0 выполнены.
 - [step-1] `npm run test:run` — 2/2 зелёных (sanity + CSV fixture). `npm run build` — TS-проверка + vite build чисто. `npm run lint` — 0 ошибок, 0 warnings. Strict TS-флаги: strict, noUncheckedIndexedAccess, noUnusedLocals/Parameters, noImplicitReturns. Tailwind v4 @theme с Halcyon-токенами. jest-axe подключён через setup.ts.
 - [step-1-review] Code review выявил 2 блокера: `RawCsvRow` поля не совпадали с реальными CSV-колонками (country_of_tax_residence, risk_classification, documentation_complete — нет nationality). Исправлено. Также: lazy Supabase init, .gitignore покрывает .env.*, coverage thresholds 80%, eslint ecmaVersion 2022. Все 3 проверки зелёные после фиксов.
+- [step-2] 164/164 тестов зелёных. TDD: тесты написаны первыми (parse/normalize/evaluator), потом реализация. `frontend-developer` скилл сгенерировал полный MVP: parseCsv, normalizeRow, classify+defaultRuleset, ClientsList, IntakeForm (с business-rule guard HIGH+APPROVED→block), AuditDashboard, FindingsPanel, KPI-селекторы. Исправлено 8 TS strict-ошибок (noUncheckedIndexedAccess в тестах, unused imports, type overlap в evaluator). Build + lint чистые.
+- [step-2-review] Code review шага 2 выявил 2 критических + 5 значимых проблем. Исправлено всё: (1) top-level await fetch → useEffect в AppShell; (2) двойной `as unknown as Record` в evaluator → Condition.field: keyof ClientRecord; (3) статичный id="dialog-title" → useId(); (4) дубль loadCsvClients в 3 файлах → src/test/helpers.ts; (5) `undefined as unknown as number` → прямой setFormData; (6) Record<string,string> → Record<FindingCode,string>. 164/164 после фиксов.
 
 ---
 
