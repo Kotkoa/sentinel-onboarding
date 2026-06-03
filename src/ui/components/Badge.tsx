@@ -3,6 +3,7 @@ import type { FC, ReactNode } from 'react'
 interface BadgeProps {
   children: ReactNode
   variant?: 'warning' | 'error' | 'info' | 'neutral'
+  'aria-label'?: string
 }
 
 const variantClasses = {
@@ -12,9 +13,10 @@ const variantClasses = {
   neutral: 'bg-neutral/10 text-neutral border border-neutral/30',
 }
 
-export const Badge: FC<BadgeProps> = ({ children, variant = 'neutral' }) => (
+export const Badge: FC<BadgeProps> = ({ children, variant = 'neutral', 'aria-label': ariaLabel }) => (
   <span
     className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${variantClasses[variant]}`}
+    aria-label={ariaLabel}
   >
     {children}
   </span>

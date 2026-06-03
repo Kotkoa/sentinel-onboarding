@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, within, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ClientsList } from './ClientsList'
 import { loadCsvClients } from '../../test/helpers'
@@ -171,6 +171,101 @@ describe('ClientsList — drawer', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Close dialog' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+})
+
+describe('ClientsList — sorting', () => {
+  it('sorts by Client ID ascending by default — CLT-001 is first row', () => {
+    const clients = loadCsvClients()
+    render(<ClientsList clients={clients} />)
+
+    expect(screen.getByTestId('row-CLT-001')).toBeInTheDocument()
+    const allRows = screen
+      .getAllByRole('button')
+      .filter((button) => button.getAttribute('aria-label')?.includes('View details'))
+    expect(allRows[0]).toBe(screen.getByTestId('row-CLT-001'))
+  })
+
+  it('Client ID column header has aria-sort="ascending" by default', () => {
+    const clients = loadCsvClients()
+    render(<ClientsList clients={clients} />)
+
+    const clientIdHeader = screen.getByRole('columnheader', { name: /Client ID/ })
+    expect(clientIdHeader).toHaveAttribute('aria-sort', 'ascending')
+  })
+
+  it('first click on already-active column toggles to descending', async () => {
+    const clients = loadCsvClients()
+    render(<ClientsList clients={clients} />)
+
+    const sortButton = screen.getByRole('button', { name: /Sort by Client ID/ })
+    await userEvent.click(sortButton)
+
+    const clientIdHeader = screen.getByRole('columnheader', { name: /Client ID/ })
+    expect(clientIdHeader).toHaveAttribute('aria-sort', 'descending')
+  })
+
+  it('clicking Branch header sets aria-sort ascending on that column', async () => {
+    const clients = loadCsvClients()
+    render(<ClientsList clients={clients} />)
+
+    await userEvent.click(screen.getByRole('button', { name: /Sort by Branch/ }))
+
+    const branchHeader = screen.getByRole('columnheader', { name: /Branch/ })
+    expect(branchHeader).toHaveAttribute('aria-sort', 'ascending')
+  })
+
+  it('places clients with null branch last when sorting by branch ascending', async () => {
+    const clients = loadCsvClients()
+    const nullBranchClients = clients.filter((client) => client.record.branch === null)
+
+    if (nullBranchClients.length === 0) return
+
+    render(<ClientsList clients={clients} />)
+    await userEvent.click(screen.getByRole('button', { name: /Sort by Branch/ }))
+
+    const allRows = screen
+      .getAllByRole('button')
+      .filter((button) => button.getAttribute('aria-label')?.includes('View details'))
+
+    const lastRows = allRows.slice(-nullBranchClients.length)
+    const lastTestIds = lastRows.map((row) => row.getAttribute('data-testid') ?? '')
+    const nullBranchIds = nullBranchClients.map((client) => `row-${client.record.clientId}`)
+    expect(lastTestIds.sort()).toEqual(nullBranchIds.sort())
+  })
+})
+
+describe('ClientsList — focus management', () => {
+  it('restores focus to trigger row after dialog is closed via close button', async () => {
+    const clients = loadCsvClients()
+    render(<ClientsList clients={clients} />)
+
+    const triggerRow = screen.getByTestId('row-CLT-001')
+    triggerRow.focus()
+    expect(document.activeElement).toBe(triggerRow)
+
+    await userEvent.click(triggerRow)
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Close dialog' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    expect(document.activeElement).toBe(triggerRow)
+  })
+
+  it('Escape key triggers cancel event which closes the dialog', async () => {
+    const clients = loadCsvClients()
+    render(<ClientsList clients={clients} />)
+
+    await userEvent.click(screen.getByTestId('row-CLT-001'))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    const dialog = screen.getByRole('dialog') as HTMLDialogElement
+    await act(async () => {
+      dialog.dispatchEvent(new Event('cancel', { bubbles: true, cancelable: true }))
+    })
+
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })

@@ -1,10 +1,12 @@
-import { type FC, useState, useCallback, useId } from 'react'
+import { type FC, useState, useCallback, useRef } from 'react'
 import { RiskBadge } from '../../ui/components/RiskBadge'
 import { Badge } from '../../ui/components/Badge'
 import { Dialog } from '../../ui/components/Dialog'
 import { formatDate } from '../../lib/formatters'
+import { nullsLastComparator } from '../../lib/sort'
 import type { ClientWithClassification } from '../../lib/useCsvClients'
 import type { RiskTier } from '../../domain/model/types'
+import type { SortDirection } from '../../lib/sort'
 
 interface ClientsListProps {
   clients: ClientWithClassification[]
@@ -12,6 +14,7 @@ interface ClientsListProps {
 
 type TierFilter = RiskTier | 'ALL'
 type FindingFilter = 'ALL' | 'HAS_FINDINGS'
+type SortColumn = 'clientId' | 'branch' | 'computedTier' | 'onboardingDate' | 'findingsCount'
 
 interface Filters {
   branch: string
@@ -19,40 +22,97 @@ interface Filters {
   findings: FindingFilter
 }
 
+interface SortState {
+  column: SortColumn
+  direction: SortDirection
+}
+
+const TIER_ORDER: Record<RiskTier, number> = { LOW: 0, MEDIUM: 1, HIGH: 2 }
+
 export const ClientsList: FC<ClientsListProps> = ({ clients }) => {
   const [filters, setFilters] = useState<Filters>({
     branch: 'ALL',
     tier: 'ALL',
     findings: 'ALL',
   })
+  const [sort, setSort] = useState<SortState>({ column: 'clientId', direction: 'asc' })
   const [selectedClient, setSelectedClient] = useState<ClientWithClassification | null>(null)
-  const filterSectionId = useId()
+  const triggerElementRef = useRef<HTMLElement | null>(null)
+
+  const handleSortColumn = useCallback((column: SortColumn) => {
+    setSort((prev) =>
+      prev.column === column
+        ? { column, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
+        : { column, direction: 'asc' },
+    )
+  }, [])
 
   const branches = Array.from(
     new Set(clients.map((client) => client.record.branch ?? 'Unknown')),
   ).sort()
 
-  const filtered = clients.filter((client) => {
-    if (filters.branch !== 'ALL' && (client.record.branch ?? 'Unknown') !== filters.branch) {
-      return false
-    }
-    if (filters.tier !== 'ALL' && client.classification.tier !== filters.tier) {
-      return false
-    }
-    if (filters.findings === 'HAS_FINDINGS' && client.findings.length === 0) {
-      return false
-    }
-    return true
-  })
+  const filtered = clients
+    .filter((client) => {
+      if (filters.branch !== 'ALL' && (client.record.branch ?? 'Unknown') !== filters.branch) {
+        return false
+      }
+      if (filters.tier !== 'ALL' && client.classification.tier !== filters.tier) {
+        return false
+      }
+      if (filters.findings === 'HAS_FINDINGS' && client.findings.length === 0) {
+        return false
+      }
+      return true
+    })
+    .sort((a, b) => {
+      switch (sort.column) {
+        case 'clientId':
+          return nullsLastComparator(
+            (item: ClientWithClassification) => item.record.clientId,
+            sort.direction,
+          )(a, b)
+        case 'branch':
+          return nullsLastComparator(
+            (item: ClientWithClassification) => item.record.branch,
+            sort.direction,
+          )(a, b)
+        case 'computedTier': {
+          const aOrder = TIER_ORDER[a.classification.tier]
+          const bOrder = TIER_ORDER[b.classification.tier]
+          return sort.direction === 'asc' ? aOrder - bOrder : bOrder - aOrder
+        }
+        case 'onboardingDate':
+          return nullsLastComparator(
+            (item: ClientWithClassification) => item.record.onboardingDate,
+            sort.direction,
+          )(a, b)
+        case 'findingsCount':
+          return sort.direction === 'asc'
+            ? a.findings.length - b.findings.length
+            : b.findings.length - a.findings.length
+        default:
+          return 0
+      }
+    })
+
+  const openDialog = useCallback((client: ClientWithClassification, trigger: HTMLElement) => {
+    triggerElementRef.current = trigger
+    setSelectedClient(client)
+  }, [])
+
+  const closeDialog = useCallback(() => {
+    setSelectedClient(null)
+    triggerElementRef.current?.focus()
+  }, [])
 
   const handleRowKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLTableRowElement>, client: ClientWithClassification) => {
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault()
-        setSelectedClient(client)
+        openDialog(client, event.currentTarget)
       }
     },
-    [],
+    [openDialog],
   )
 
   const isMisclassified = (client: ClientWithClassification) =>
@@ -62,7 +122,6 @@ export const ClientsList: FC<ClientsListProps> = ({ clients }) => {
   return (
     <section aria-label="Clients list">
       <div
-        id={filterSectionId}
         className="flex flex-wrap gap-3 mb-4"
         role="group"
         aria-label="Filter clients"
@@ -127,12 +186,12 @@ export const ClientsList: FC<ClientsListProps> = ({ clients }) => {
         </div>
       </div>
 
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {filtered.length === 0 ? 'No clients match the current filters.' : `${filtered.length} clients shown.`}
+      </div>
+
       {filtered.length === 0 ? (
-        <div
-          role="status"
-          className="py-16 text-center text-neutral"
-          aria-label="No clients match the current filters"
-        >
+        <div className="py-16 text-center text-neutral">
           <p className="text-base">No clients match the current filters.</p>
         </div>
       ) : (
@@ -140,30 +199,45 @@ export const ClientsList: FC<ClientsListProps> = ({ clients }) => {
           <table className="w-full bg-card text-sm" aria-label="Client records">
             <thead>
               <tr className="border-b border-neutral/20 bg-background">
-                <th scope="col" className="px-4 py-3 text-left font-semibold text-text">
-                  Client ID
-                </th>
+                <SortableHeader
+                  column="clientId"
+                  label="Client ID"
+                  sort={sort}
+                  onSort={handleSortColumn}
+                />
                 <th scope="col" className="px-4 py-3 text-left font-semibold text-text">
                   Name
                 </th>
-                <th scope="col" className="px-4 py-3 text-left font-semibold text-text">
-                  Branch
-                </th>
-                <th scope="col" className="px-4 py-3 text-left font-semibold text-text">
-                  Computed tier
-                </th>
+                <SortableHeader
+                  column="branch"
+                  label="Branch"
+                  sort={sort}
+                  onSort={handleSortColumn}
+                />
+                <SortableHeader
+                  column="computedTier"
+                  label="Computed tier"
+                  sort={sort}
+                  onSort={handleSortColumn}
+                />
                 <th scope="col" className="px-4 py-3 text-left font-semibold text-text">
                   Recorded tier
                 </th>
-                <th scope="col" className="px-4 py-3 text-left font-semibold text-text">
-                  Findings
-                </th>
+                <SortableHeader
+                  column="findingsCount"
+                  label="Findings"
+                  sort={sort}
+                  onSort={handleSortColumn}
+                />
                 <th scope="col" className="px-4 py-3 text-left font-semibold text-text">
                   KYC status
                 </th>
-                <th scope="col" className="px-4 py-3 text-left font-semibold text-text">
-                  Onboarding date
-                </th>
+                <SortableHeader
+                  column="onboardingDate"
+                  label="Onboarding date"
+                  sort={sort}
+                  onSort={handleSortColumn}
+                />
               </tr>
             </thead>
             <tbody>
@@ -175,7 +249,7 @@ export const ClientsList: FC<ClientsListProps> = ({ clients }) => {
                     tabIndex={0}
                     role="button"
                     aria-label={`View details for ${client.record.clientName ?? client.record.clientId}`}
-                    onClick={() => setSelectedClient(client)}
+                    onClick={(event) => openDialog(client, event.currentTarget)}
                     onKeyDown={(event) => handleRowKeyDown(event, client)}
                     className={[
                       'border-b border-neutral/10 cursor-pointer transition-colors',
@@ -236,12 +310,43 @@ export const ClientsList: FC<ClientsListProps> = ({ clients }) => {
         <Dialog
           isOpen
           title={`${selectedClient.record.clientName ?? selectedClient.record.clientId} — Details`}
-          onClose={() => setSelectedClient(null)}
+          onClose={closeDialog}
         >
           <ClientDetailPanel client={selectedClient} />
         </Dialog>
       )}
     </section>
+  )
+}
+
+interface SortableHeaderProps {
+  column: SortColumn
+  label: string
+  sort: SortState
+  onSort: (column: SortColumn) => void
+}
+
+const SortableHeader: FC<SortableHeaderProps> = ({ column, label, sort, onSort }) => {
+  const isActive = sort.column === column
+  const ariaSort = isActive ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'
+
+  return (
+    <th
+      scope="col"
+      aria-sort={ariaSort}
+      className="px-4 py-3 text-left font-semibold text-text"
+    >
+      <button
+        onClick={() => onSort(column)}
+        className="inline-flex items-center gap-1 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded transition-colors min-h-11 -my-3 px-0 py-3"
+        aria-label={`Sort by ${label}${isActive ? `, currently ${ariaSort}` : ''}`}
+      >
+        {label}
+        <span aria-hidden="true" className="text-xs">
+          {isActive ? (sort.direction === 'asc' ? ' ↑' : ' ↓') : ' ↕'}
+        </span>
+      </button>
+    </th>
   )
 }
 
