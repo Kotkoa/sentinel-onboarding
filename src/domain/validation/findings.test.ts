@@ -147,6 +147,59 @@ describe('detectFindings — HIGH_RISK_APPROVED_WITHOUT_EDD', () => {
   })
 })
 
+describe('detectFindings — MISSING_REQUIRED_FIELD', () => {
+  it('fires when clientName is null', () => {
+    const findings = detectFindings({ ...baseRecord, clientName: null }, lowClassification)
+    const finding = findings.find((f) => f.code === 'MISSING_REQUIRED_FIELD' && f.field === 'client_name')
+    expect(finding).toBeDefined()
+    expect(finding?.severity).toBe('WARNING')
+  })
+
+  it('fires when countryOfTaxResidence is null', () => {
+    const findings = detectFindings({ ...baseRecord, countryOfTaxResidence: null }, lowClassification)
+    expect(findings.some((f) => f.code === 'MISSING_REQUIRED_FIELD' && f.field === 'country_of_tax_residence')).toBe(true)
+  })
+
+  it('fires when kycStatus is null', () => {
+    const findings = detectFindings({ ...baseRecord, kycStatus: null }, lowClassification)
+    expect(findings.some((f) => f.code === 'MISSING_REQUIRED_FIELD' && f.field === 'kyc_status')).toBe(true)
+  })
+
+  it('fires when onboardingDate is null', () => {
+    const findings = detectFindings({ ...baseRecord, onboardingDate: null }, lowClassification)
+    expect(findings.some((f) => f.code === 'MISSING_REQUIRED_FIELD' && f.field === 'onboarding_date')).toBe(true)
+  })
+
+  it('does not fire when all required fields are present', () => {
+    const findings = detectFindings(baseRecord, lowClassification)
+    expect(findings.some((f) => f.code === 'MISSING_REQUIRED_FIELD')).toBe(false)
+  })
+})
+
+describe('detectFindings — INVALID_VALUE', () => {
+  it('fires when annualIncome is negative', () => {
+    const findings = detectFindings({ ...baseRecord, annualIncome: -500 }, lowClassification)
+    const finding = findings.find((f) => f.code === 'INVALID_VALUE' && f.field === 'annual_income')
+    expect(finding).toBeDefined()
+    expect(finding?.severity).toBe('WARNING')
+  })
+
+  it('does not fire when annualIncome is zero', () => {
+    const findings = detectFindings({ ...baseRecord, annualIncome: 0 }, lowClassification)
+    expect(findings.some((f) => f.code === 'INVALID_VALUE' && f.field === 'annual_income')).toBe(false)
+  })
+
+  it('does not fire when annualIncome is null', () => {
+    const findings = detectFindings({ ...baseRecord, annualIncome: null }, lowClassification)
+    expect(findings.some((f) => f.code === 'INVALID_VALUE' && f.field === 'annual_income')).toBe(false)
+  })
+
+  it('does not fire for a valid record', () => {
+    const findings = detectFindings(baseRecord, lowClassification)
+    expect(findings.some((f) => f.code === 'INVALID_VALUE')).toBe(false)
+  })
+})
+
 describe('detectFindings — golden dataset test', () => {
   const csvFixture = readFileSync(
     join(__dirname, '../../test/fixtures/client_onboarding.csv'),
