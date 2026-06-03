@@ -3,6 +3,8 @@
 SPA prototype for client risk classification during onboarding.
 Halcyon Capital Partners — SENTINEL programme.
 
+**Live preview:** [sentinel-onboarding-peach.vercel.app](https://sentinel-onboarding-peach.vercel.app)
+
 ## Stack
 
 - Vite + React 18 + TypeScript (strict)

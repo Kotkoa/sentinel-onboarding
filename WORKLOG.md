@@ -13,6 +13,7 @@
 ## Process — хронология промптов
 
 <!-- AUTO: сюда хук дописывает саммари каждого ввода пользователя -->
+- [2026-06-03 21:54] prompt: добавь на ридми ссылку life previe sentinel-onboarding-peach.vercel.app
 - [2026-06-03 21:42] prompt: README.md — добавть архитектурную схему проекта - блоксхемки сделай скриншоты основных страниц и добавить их на ридми в таблицу
 - [2026-06-03 21:34] prompt: <ide_selection>The user selected the lines 335 to 335 from /Users/kotkoa/.claude/plans/client-onboarding-csv-candidate-instruc-glistening-wigderson.md: performance-engineer This may or may not be related to the current task.</ide_selection> выполнить Шаг 11 — Фин
 - [2026-06-03 21:27] prompt: <ide_selection>The user selected the lines 316 to 316 from /Users/kotkoa/.claude/plans/client-onboarding-csv-candidate-instruc-glistening-wigderson.md: web-design-guidelines This may or may not be related to the current task.</ide_selection> @CLAUDE.md @/Users/kotkoa/.claude/plan
