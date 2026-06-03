@@ -1,4 +1,4 @@
-import { type FC, useState, useMemo, useId } from 'react'
+import { type FC, useState, useMemo, useId, useEffect } from 'react'
 import { classify } from '../../domain/rules/evaluator'
 import { defaultRuleset } from '../../domain/rules/defaultRuleset'
 import { RiskBadge } from '../../ui/components/RiskBadge'
@@ -54,12 +54,10 @@ function buildClientRecord(data: IntakeFormData, clientId: string): ClientRecord
 
 export const IntakeForm: FC<IntakeFormProps> = ({ repository, assessedBy, onSuccess }) => {
   const formId = useId()
-  const liveRegionId = useId()
 
   const [step, setStep] = useState<Step>('form')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
-  const [businessRuleError, setBusinessRuleError] = useState<string | null>(null)
   const [pendingRecord, setPendingRecord] = useState<{
     clientRecord: ClientRecord
     classification: ClassificationResult
@@ -99,6 +97,16 @@ export const IntakeForm: FC<IntakeFormProps> = ({ repository, assessedBy, onSucc
     return classify(partial, defaultRuleset)
   }, [formData])
 
+  const isHighRisk = liveClassification?.tier === 'HIGH'
+
+  useEffect(() => {
+    if (isHighRisk && formData.kycStatus !== 'ENHANCED_DUE_DILIGENCE') {
+      setFormData((prev) => ({ ...prev, kycStatus: 'ENHANCED_DUE_DILIGENCE' }))
+    } else if (!isHighRisk && formData.kycStatus === 'ENHANCED_DUE_DILIGENCE') {
+      setFormData((prev) => ({ ...prev, kycStatus: 'PENDING' }))
+    }
+  }, [isHighRisk, formData.kycStatus])
+
   const setField = <TKey extends keyof IntakeFormData>(key: TKey, value: IntakeFormData[TKey]) => {
     setFormData((prev) => ({ ...prev, [key]: value }))
     if (errors[key]) {
@@ -125,13 +133,10 @@ export const IntakeForm: FC<IntakeFormProps> = ({ repository, assessedBy, onSucc
     const classification = classify(clientRecord, defaultRuleset)
 
     if (classification.tier === 'HIGH' && result.data.kycStatus === 'APPROVED') {
-      setBusinessRuleError(
-        'HIGH risk clients cannot be approved without Enhanced Due Diligence (EDD). Please set KYC status to ENHANCED_DUE_DILIGENCE.',
-      )
+      setErrors({ kycStatus: 'HIGH risk clients require Enhanced Due Diligence — APPROVED is not permitted.' })
       return
     }
 
-    setBusinessRuleError(null)
     setPendingRecord({ clientRecord, classification })
     setStep('attestation')
   }
@@ -163,113 +168,119 @@ export const IntakeForm: FC<IntakeFormProps> = ({ repository, assessedBy, onSucc
     onSuccess?.(complianceRecord)
   }
 
-  if (step === 'success') {
-    return (
+  return (
+    <section aria-labelledby={`${formId}-title`} className="max-w-2xl mx-auto">
       <div
         role="status"
         aria-live="polite"
-        className="py-12 text-center"
+        aria-atomic="true"
+        className="sr-only"
       >
-        <div className="text-success text-5xl mb-4">✓</div>
-        <h2 className="text-xl font-semibold text-text mb-2">Assessment recorded</h2>
-        <p className="text-neutral">The compliance record has been saved successfully.</p>
-        <Button
-          className="mt-6"
-          variant="secondary"
-          onClick={() => {
-            setFormData({
-              pepStatus: false,
-              sanctionsScreeningMatch: false,
-              adverseMediaFlag: false,
-              documentationComplete: false,
-              kycStatus: 'PENDING',
-            })
-            setErrors({})
-            setBusinessRuleError(null)
-            setPendingRecord(null)
-            setStep('form')
-          }}
-        >
-          New assessment
-        </Button>
+        {liveClassification
+          ? `Live classification: ${liveClassification.tier}. ${liveClassification.explanation}`
+          : ''}
       </div>
-    )
-  }
 
-  if (step === 'attestation' && pendingRecord) {
-    return (
-      <div className="max-w-lg mx-auto space-y-6">
-        <h2 className="text-lg font-semibold text-text">Attestation</h2>
-        <div className="bg-background rounded-card p-4 space-y-2 text-sm">
-          <p>
-            <span className="font-medium">Client:</span> {pendingRecord.clientRecord.clientName}
-          </p>
-          <p className="flex items-center gap-2">
-            <span className="font-medium">Computed risk tier:</span>
-            <RiskBadge tier={pendingRecord.classification.tier} />
-          </p>
-          <p className="text-neutral text-xs">{pendingRecord.classification.explanation}</p>
-        </div>
-        <div className="bg-warning/5 border border-warning/40 rounded-card p-4 text-sm">
-          <p className="font-medium text-text mb-2">Attestation statement</p>
-          <p className="text-neutral text-xs leading-relaxed">
-            I attest that the information provided is accurate and complete to the best of my
-            knowledge, in accordance with MLR 2017 and SYSC requirements. I understand that this
-            record is subject to regulatory review.
-          </p>
-        </div>
-        <div className="flex gap-3">
+      {step === 'success' && (
+        <div className="py-12 text-center">
+          <div className="text-success text-5xl mb-4">✓</div>
+          <h2 id={`${formId}-title`} className="text-xl font-semibold text-text mb-2">Assessment recorded</h2>
+          <p className="text-neutral">The compliance record has been saved successfully.</p>
           <Button
+            className="mt-6"
             variant="secondary"
-            onClick={() => setStep('form')}
-            disabled={isSubmitting}
+            onClick={() => {
+              setFormData({
+                pepStatus: false,
+                sanctionsScreeningMatch: false,
+                adverseMediaFlag: false,
+                documentationComplete: false,
+                kycStatus: 'PENDING',
+              })
+              setErrors({})
+              setPendingRecord(null)
+              setStep('form')
+            }}
           >
-            Back
-          </Button>
-          <Button
-            onClick={handleAttest}
-            isLoading={isSubmitting}
-            aria-label="Confirm and attest the compliance record"
-          >
-            Confirm & Attest
+            New assessment
           </Button>
         </div>
-      </div>
-    )
-  }
+      )}
 
-  return (
-    <section aria-labelledby={`${formId}-title`} className="max-w-2xl mx-auto">
+      {step === 'attestation' && pendingRecord && (
+        <div className="max-w-lg mx-auto space-y-6">
+          <h2 id={`${formId}-title`} className="text-lg font-semibold text-text">Attestation</h2>
+          <div className="bg-background rounded-card p-4 space-y-2 text-sm">
+            <p>
+              <span className="font-medium">Client:</span> {pendingRecord.clientRecord.clientName}
+            </p>
+            <p className="flex items-center gap-2">
+              <span className="font-medium">Computed risk tier:</span>
+              <RiskBadge tier={pendingRecord.classification.tier} />
+            </p>
+            <p className="text-neutral text-xs">{pendingRecord.classification.explanation}</p>
+          </div>
+          <div className="bg-warning/5 border border-warning/40 rounded-card p-4 text-sm">
+            <p className="font-medium text-text mb-2">Attestation statement</p>
+            <p className="text-neutral text-xs leading-relaxed">
+              I attest that the information provided is accurate and complete to the best of my
+              knowledge, in accordance with MLR 2017 and SYSC requirements. I understand that this
+              record is subject to regulatory review.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              variant="secondary"
+              onClick={() => setStep('form')}
+              disabled={isSubmitting}
+            >
+              Back
+            </Button>
+            <Button
+              onClick={handleAttest}
+              isLoading={isSubmitting}
+              aria-label="Confirm and attest the compliance record"
+            >
+              Confirm & Attest
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {step === 'form' && (
+      <div>
       <h2 id={`${formId}-title`} className="text-lg font-semibold text-text mb-6">
         New Client Assessment
       </h2>
 
       {liveClassification && (
         <div
-          id={liveRegionId}
-          aria-live="polite"
-          aria-atomic="true"
           className={[
-            'mb-6 p-4 rounded-card border text-sm flex items-center gap-3',
+            'mb-6 p-4 rounded-card border text-sm flex items-start gap-3',
             liveClassification.tier === 'HIGH'
               ? 'bg-error/5 border-error/30'
               : liveClassification.tier === 'MEDIUM'
               ? 'bg-warning/5 border-warning/40'
               : 'bg-success/5 border-success/30',
           ].join(' ')}
+          aria-hidden="true"
         >
-          <span className="text-neutral">Live classification:</span>
+          <span className="text-neutral shrink-0">Live classification:</span>
           <RiskBadge tier={liveClassification.tier} />
           <span className="text-xs text-neutral ml-2">{liveClassification.explanation}</span>
         </div>
       )}
 
-      {businessRuleError && (
+      {isHighRisk && (
         <div
           role="alert"
-          className="mb-6 p-4 rounded-card border border-error/30 bg-error/5 text-sm text-error"
+          className="mb-6 p-4 rounded-card border border-error/30 bg-error/5 text-sm"
         >
-          {businessRuleError}
+          <p className="font-semibold text-error mb-1">Enhanced Due Diligence required</p>
+          <p className="text-text">
+            This client is classified as HIGH risk. Senior compliance sign-off is required before
+            approval. KYC status has been set to Enhanced Due Diligence automatically.
+          </p>
         </div>
       )}
 
@@ -518,7 +529,7 @@ export const IntakeForm: FC<IntakeFormProps> = ({ repository, assessedBy, onSucc
             >
               <option value="">Select status</option>
               <option value="PENDING">Pending</option>
-              <option value="APPROVED">Approved</option>
+              {!isHighRisk && <option value="APPROVED">Approved</option>}
               <option value="REJECTED">Rejected</option>
               <option value="ENHANCED_DUE_DILIGENCE">Enhanced Due Diligence</option>
             </select>
@@ -572,6 +583,8 @@ export const IntakeForm: FC<IntakeFormProps> = ({ repository, assessedBy, onSucc
           <span className="text-xs text-neutral">* Required fields</span>
         </div>
       </div>
+      </div>
+      )}
     </section>
   )
 }

@@ -73,26 +73,31 @@ describe('IntakeForm — live classification', () => {
 })
 
 describe('IntakeForm — business-rule guard', () => {
-  it('blocks submission of HIGH + APPROVED without EDD', async () => {
+it('shows EDD notice and removes APPROVED option when HIGH risk detected', async () => {
     renderForm()
 
     await userEvent.selectOptions(screen.getByLabelText(/country of tax residence/i), 'Russia')
-    await userEvent.type(screen.getByLabelText(/client name/i), 'High Risk Client')
-    await userEvent.selectOptions(screen.getByLabelText(/branch/i), 'Mayfair')
-    await userEvent.selectOptions(screen.getByLabelText(/client type/i), 'INDIVIDUAL')
-    await userEvent.type(screen.getByLabelText(/annual income/i), '50000')
-    await userEvent.selectOptions(screen.getByLabelText(/source of funds/i), 'Employment')
-    await userEvent.selectOptions(screen.getByLabelText(/kyc status/i), 'APPROVED')
-    await userEvent.type(screen.getByLabelText(/relationship manager/i), 'R. Patel')
-
-    await userEvent.click(screen.getByRole('button', { name: /submit/i }))
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent(/HIGH risk.*cannot be approved.*EDD/i)
+      expect(screen.getByRole('alert')).toHaveTextContent(/Enhanced Due Diligence required/i)
+    })
+
+    const kycSelect = screen.getByLabelText(/kyc status/i)
+    const options = Array.from(kycSelect.querySelectorAll('option')).map((opt) => opt.value)
+    expect(options).not.toContain('APPROVED')
+  })
+
+  it('auto-switches kycStatus to ENHANCED_DUE_DILIGENCE when HIGH risk detected', async () => {
+    renderForm()
+
+    await userEvent.selectOptions(screen.getByLabelText(/country of tax residence/i), 'Russia')
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/kyc status/i)).toHaveValue('ENHANCED_DUE_DILIGENCE')
     })
   })
 
-  it('does not block HIGH + ENHANCED_DUE_DILIGENCE', async () => {
+it('does not block HIGH + ENHANCED_DUE_DILIGENCE', async () => {
     const onSuccess = vi.fn()
     const { repository } = renderForm(onSuccess)
 
@@ -205,6 +210,67 @@ describe('IntakeForm — successful submit', () => {
   })
 })
 
+describe('IntakeForm — EDD enforcement', () => {
+  it('restores APPROVED option when country changes back to low-risk', async () => {
+    renderForm()
+
+    await userEvent.selectOptions(screen.getByLabelText(/country of tax residence/i), 'Russia')
+    await waitFor(() => {
+      expect(screen.getByLabelText(/kyc status/i)).toHaveValue('ENHANCED_DUE_DILIGENCE')
+    })
+
+    await userEvent.selectOptions(screen.getByLabelText(/country of tax residence/i), 'Netherlands')
+    await waitFor(() => {
+      const options = Array.from(
+        screen.getByLabelText(/kyc status/i).querySelectorAll('option'),
+      ).map((opt) => opt.value)
+      expect(options).toContain('APPROVED')
+    })
+  })
+
+  it('EDD notice disappears when risk drops below HIGH', async () => {
+    renderForm()
+
+    await userEvent.selectOptions(screen.getByLabelText(/country of tax residence/i), 'Russia')
+    await waitFor(() => screen.getByRole('alert'))
+
+    await userEvent.selectOptions(screen.getByLabelText(/country of tax residence/i), 'Netherlands')
+    await waitFor(() => {
+      expect(screen.queryByText(/Enhanced Due Diligence required/i)).not.toBeInTheDocument()
+    })
+  })
+})
+
+describe('IntakeForm — keyboard flow', () => {
+  it('can complete form and reach attestation using only keyboard interactions', async () => {
+    renderForm()
+
+    const clientNameInput = screen.getByLabelText(/client name/i)
+    clientNameInput.focus()
+    await userEvent.type(clientNameInput, 'Keyboard User')
+
+    await userEvent.selectOptions(screen.getByLabelText(/branch/i), 'Edinburgh')
+    await userEvent.selectOptions(screen.getByLabelText(/client type/i), 'INDIVIDUAL')
+    await userEvent.selectOptions(screen.getByLabelText(/country of tax residence/i), 'Germany')
+
+    const incomeInput = screen.getByLabelText(/annual income/i)
+    await userEvent.clear(incomeInput)
+    await userEvent.type(incomeInput, '120000')
+
+    await userEvent.selectOptions(screen.getByLabelText(/source of funds/i), 'Employment')
+    await userEvent.selectOptions(screen.getByLabelText(/kyc status/i), 'APPROVED')
+    await userEvent.type(screen.getByLabelText(/relationship manager/i), 'A. Brooks')
+
+    const submitButton = screen.getByRole('button', { name: /submit/i })
+    submitButton.focus()
+    await userEvent.keyboard('{Enter}')
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /attestation/i })).toBeInTheDocument()
+    })
+  })
+})
+
 describe('IntakeForm — a11y', () => {
   it('has no a11y violations on initial render', async () => {
     const { container } = render(
@@ -221,6 +287,31 @@ describe('IntakeForm — a11y', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /submit/i }))
     await waitFor(() => screen.getAllByRole('alert'))
+
+    const results = await axe(container)
+    expect(results).toHaveNoViolations()
+  })
+
+  it('has no a11y violations on attestation step', async () => {
+    const { container } = render(
+      <IntakeForm repository={new InMemoryComplianceRepository()} assessedBy="T. Nakamura" />,
+    )
+
+    await fillRequiredFields()
+    await userEvent.click(screen.getByRole('button', { name: /submit/i }))
+    await waitFor(() => screen.getByRole('heading', { name: /attestation/i }))
+
+    const results = await axe(container)
+    expect(results).toHaveNoViolations()
+  })
+
+  it('has no a11y violations with HIGH risk EDD notice', async () => {
+    const { container } = render(
+      <IntakeForm repository={new InMemoryComplianceRepository()} assessedBy="T. Nakamura" />,
+    )
+
+    await userEvent.selectOptions(screen.getByLabelText(/country of tax residence/i), 'Russia')
+    await waitFor(() => screen.getByRole('alert'))
 
     const results = await axe(container)
     expect(results).toHaveNoViolations()
