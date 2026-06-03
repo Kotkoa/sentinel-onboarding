@@ -133,6 +133,7 @@ describe('mapping — round-trip', () => {
       id: row.id ?? RECORD.id,
       assessed_at: RECORD.assessedAt,
       sync_status: row.sync_status ?? 'SYNCED',
+      branch: row.branch ?? null,
       created_at: '2026-06-03T10:00:00.000Z',
     }
     const restored = fromRow(rowAsStored)
@@ -154,6 +155,7 @@ describe('mapping — round-trip', () => {
       id: row.id ?? RECORD.id,
       assessed_at: RECORD.assessedAt,
       sync_status: row.sync_status ?? 'SYNCED',
+      branch: row.branch ?? null,
       created_at: '2026-06-03T10:00:00.000Z',
     }
     const restored = fromRow(rowAsStored)

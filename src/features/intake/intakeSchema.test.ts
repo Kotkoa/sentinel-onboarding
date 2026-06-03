@@ -37,7 +37,9 @@ describe('intakeSchema — valid inputs', () => {
   })
 
   it('accepts idVerificationDate omitted (optional)', () => {
-    const { idVerificationDate: _omitted, ...withoutDate } = { ...VALID_INPUT, idVerificationDate: undefined }
+    const withoutDate = Object.fromEntries(
+      Object.entries({ ...VALID_INPUT, idVerificationDate: undefined }).filter(([key]) => key !== 'idVerificationDate'),
+    )
     const result = intakeSchema.safeParse(withoutDate)
     expect(result.success).toBe(true)
   })

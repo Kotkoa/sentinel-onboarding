@@ -115,9 +115,10 @@ function runContractTests(
     })
 
     it('interface has no update or delete methods (append-only by type)', () => {
-      expect((repository as Record<string, unknown>)['update']).toBeUndefined()
-      expect((repository as Record<string, unknown>)['delete']).toBeUndefined()
-      expect((repository as Record<string, unknown>)['deleteAll']).toBeUndefined()
+      const repo = repository as unknown as Record<string, unknown>
+      expect(repo['update']).toBeUndefined()
+      expect(repo['delete']).toBeUndefined()
+      expect(repo['deleteAll']).toBeUndefined()
     })
   })
 }
