@@ -14,12 +14,15 @@ beforeAll(() => {
   })
 })
 
+function getDataRows() {
+  return screen.getAllByRole('row').filter((row) => row.hasAttribute('data-testid'))
+}
+
 describe('ClientsList', () => {
   it('renders ~46 rows from CSV fixture', () => {
     const clients = loadCsvClients()
     render(<ClientsList clients={clients} />)
-    const rows = screen.getAllByRole('button')
-    expect(rows.length).toBeGreaterThanOrEqual(46)
+    expect(getDataRows().length).toBeGreaterThanOrEqual(46)
   })
 
   it('shows misclassification visual marker for known dirty rows', () => {
@@ -67,10 +70,7 @@ describe('ClientsList — filters', () => {
 
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Branch' }), 'Mayfair')
 
-    const rows = screen.getAllByRole('button').filter((button) =>
-      button.getAttribute('aria-label')?.includes('View details'),
-    )
-    expect(rows.length).toBe(mayfairClients.length)
+    expect(getDataRows().length).toBe(mayfairClients.length)
   })
 
   it('filters by risk tier HIGH', async () => {
@@ -81,10 +81,7 @@ describe('ClientsList — filters', () => {
 
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Risk tier' }), 'HIGH')
 
-    const rows = screen.getAllByRole('button').filter((button) =>
-      button.getAttribute('aria-label')?.includes('View details'),
-    )
-    expect(rows.length).toBe(highClients.length)
+    expect(getDataRows().length).toBe(highClients.length)
   })
 
   it('filters by has findings', async () => {
@@ -98,10 +95,7 @@ describe('ClientsList — filters', () => {
       'HAS_FINDINGS',
     )
 
-    const rows = screen.getAllByRole('button').filter((button) =>
-      button.getAttribute('aria-label')?.includes('View details'),
-    )
-    expect(rows.length).toBe(clientsWithFindings.length)
+    expect(getDataRows().length).toBe(clientsWithFindings.length)
   })
 
   it('shows empty state when no results match filters', async () => {
@@ -122,10 +116,7 @@ describe('ClientsList — filters', () => {
         client.findings.length > 0,
     )
 
-    const rows = screen
-      .queryAllByRole('button')
-      .filter((button) => button.getAttribute('aria-label')?.includes('View details'))
-    expect(rows.length).toBe(mayfairHighWithFindings.length)
+    expect(getDataRows().length).toBe(mayfairHighWithFindings.length)
   })
 })
 
@@ -181,10 +172,7 @@ describe('ClientsList — sorting', () => {
     render(<ClientsList clients={clients} />)
 
     expect(screen.getByTestId('row-CLT-001')).toBeInTheDocument()
-    const allRows = screen
-      .getAllByRole('button')
-      .filter((button) => button.getAttribute('aria-label')?.includes('View details'))
-    expect(allRows[0]).toBe(screen.getByTestId('row-CLT-001'))
+    expect(getDataRows()[0]).toBe(screen.getByTestId('row-CLT-001'))
   })
 
   it('Client ID column header has aria-sort="ascending" by default', () => {

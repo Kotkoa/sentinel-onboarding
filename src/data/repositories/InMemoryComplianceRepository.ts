@@ -9,7 +9,7 @@ export class InMemoryComplianceRepository implements ComplianceRepository {
   }
 
   async list(): Promise<ComplianceRecord[]> {
-    return [...this.records]
+    return [...this.records].sort((a, b) => b.assessedAt.localeCompare(a.assessedAt))
   }
 
   async getByClientId(clientId: string): Promise<ComplianceRecord[]> {

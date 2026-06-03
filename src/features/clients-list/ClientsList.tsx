@@ -134,7 +134,7 @@ export const ClientsList: FC<ClientsListProps> = ({ clients }) => {
             id="filter-branch"
             value={filters.branch}
             onChange={(event) => setFilters({ ...filters, branch: event.target.value })}
-            className="min-h-[44px] px-3 py-2 rounded-lg border border-neutral/40 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+            className="min-h-11 px-3 py-2 rounded-lg border border-neutral/40 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="ALL">All branches</option>
             {branches.map((branch) => (
@@ -153,7 +153,7 @@ export const ClientsList: FC<ClientsListProps> = ({ clients }) => {
             id="filter-tier"
             value={filters.tier}
             onChange={(event) => setFilters({ ...filters, tier: event.target.value as TierFilter })}
-            className="min-h-[44px] px-3 py-2 rounded-lg border border-neutral/40 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+            className="min-h-11 px-3 py-2 rounded-lg border border-neutral/40 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="ALL">All tiers</option>
             <option value="HIGH">HIGH</option>
@@ -172,7 +172,7 @@ export const ClientsList: FC<ClientsListProps> = ({ clients }) => {
             onChange={(event) =>
               setFilters({ ...filters, findings: event.target.value as FindingFilter })
             }
-            className="min-h-[44px] px-3 py-2 rounded-lg border border-neutral/40 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+            className="min-h-11 px-3 py-2 rounded-lg border border-neutral/40 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="ALL">All clients</option>
             <option value="HAS_FINDINGS">Has findings</option>
@@ -247,8 +247,6 @@ export const ClientsList: FC<ClientsListProps> = ({ clients }) => {
                   <tr
                     key={client.record.clientId}
                     tabIndex={0}
-                    role="button"
-                    aria-label={`View details for ${client.record.clientName ?? client.record.clientId}`}
                     onClick={(event) => openDialog(client, event.currentTarget)}
                     onKeyDown={(event) => handleRowKeyDown(event, client)}
                     className={[
@@ -262,6 +260,9 @@ export const ClientsList: FC<ClientsListProps> = ({ clients }) => {
                     data-misclassified={misclassified ? 'true' : undefined}
                   >
                     <td className="px-4 py-3 font-mono text-xs text-neutral">
+                      <span className="sr-only">
+                        {`View details for ${client.record.clientName ?? client.record.clientId}. `}
+                      </span>
                       {client.record.clientId}
                     </td>
                     <td className="px-4 py-3 font-medium">

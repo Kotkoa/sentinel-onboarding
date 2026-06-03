@@ -6,13 +6,27 @@ import { AuditDashboard } from '../features/audit/AuditDashboard'
 import { FindingsPanel } from '../features/findings/FindingsPanel'
 import { DesignSystemDemo } from '../features/design-system/DesignSystemDemo'
 import { RulesetInspector } from '../features/ruleset/RulesetInspector'
+import { AssessmentsList } from '../features/assessments/AssessmentsList'
+import { SupabaseComplianceRepository } from '../data/repositories/SupabaseComplianceRepository'
 import { InMemoryComplianceRepository } from '../data/repositories/InMemoryComplianceRepository'
+import { getSupabaseClient } from '../data/supabase/client'
 import { useCsvClients } from '../lib/useCsvClients'
 import type { ComplianceRecord } from '../domain/model/types'
+import type { ComplianceRepository } from '../data/repositories/ComplianceRepository'
+
+function createRepository(): ComplianceRepository {
+  const supabaseUrl = import.meta.env['VITE_SUPABASE_URL']
+  const supabaseKey = import.meta.env['VITE_SUPABASE_ANON_KEY']
+  if (supabaseUrl && supabaseKey) {
+    return new SupabaseComplianceRepository(getSupabaseClient())
+  }
+  return new InMemoryComplianceRepository()
+}
 
 const NAV_LINKS = [
   { to: '/', label: 'Clients', end: true },
   { to: '/intake', label: 'New Assessment' },
+  { to: '/assessments', label: 'Assessments' },
   { to: '/audit', label: 'Audit Dashboard' },
   { to: '/findings', label: 'Findings' },
   { to: '/ruleset', label: 'Rules' },
@@ -35,7 +49,7 @@ const EmptyState: FC = () => (
 )
 
 export const AppShell: FC = () => {
-  const repositoryRef = useRef(new InMemoryComplianceRepository())
+  const repositoryRef = useRef<ComplianceRepository>(createRepository())
   const [loadedCsv, setLoadedCsv] = useState<string | null>(null)
   const [complianceRecords, setComplianceRecords] = useState<ComplianceRecord[]>([])
 
@@ -49,7 +63,7 @@ export const AppShell: FC = () => {
   const { clients, isLoading, error } = useCsvClients(loadedCsv)
 
   const handleSuccess = useCallback((record: ComplianceRecord) => {
-    setComplianceRecords((prev) => [...prev, record])
+    setComplianceRecords((prev) => [record, ...prev])
   }, [])
 
   return (
@@ -65,7 +79,7 @@ export const AppShell: FC = () => {
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div>
             <h1 className="text-xl font-semibold tracking-tight">Halcyon Capital Partners</h1>
-            <p className="text-sm text-primary-light">SENTINEL Onboarding</p>
+            <p className="text-sm text-white/75">SENTINEL Onboarding</p>
           </div>
           {clients.length > 0 && (
             <span className="text-sm opacity-70">{clients.length} clients loaded</span>
@@ -138,6 +152,15 @@ export const AppShell: FC = () => {
             element={<AuditDashboard clients={clients} complianceRecords={complianceRecords} />}
           />
           <Route path="/findings" element={<FindingsPanel clients={clients} />} />
+          <Route
+            path="/assessments"
+            element={
+              <AssessmentsList
+                records={complianceRecords}
+                repository={repositoryRef.current}
+              />
+            }
+          />
           <Route path="/ruleset" element={<RulesetInspector />} />
           <Route path="/design-system" element={<DesignSystemDemo />} />
         </Routes>

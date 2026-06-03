@@ -58,6 +58,7 @@ export const IntakeForm: FC<IntakeFormProps> = ({ repository, assessedBy, onSucc
   const [step, setStep] = useState<Step>('form')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [pendingRecord, setPendingRecord] = useState<{
     clientRecord: ClientRecord
     classification: ClassificationResult
@@ -137,6 +138,7 @@ export const IntakeForm: FC<IntakeFormProps> = ({ repository, assessedBy, onSucc
       return
     }
 
+    setSaveError(null)
     setPendingRecord({ clientRecord, classification })
     setStep('attestation')
   }
@@ -147,7 +149,7 @@ export const IntakeForm: FC<IntakeFormProps> = ({ repository, assessedBy, onSucc
     setIsSubmitting(true)
 
     const complianceRecord: ComplianceRecord = {
-      id: `CR-${Date.now()}`,
+      id: crypto.randomUUID(),
       clientId: pendingRecord.clientRecord.clientId,
       assessmentData: pendingRecord.clientRecord,
       classification: pendingRecord.classification,
@@ -162,10 +164,17 @@ export const IntakeForm: FC<IntakeFormProps> = ({ repository, assessedBy, onSucc
       syncStatus: 'LOCAL',
     }
 
-    await repository.save(complianceRecord)
-    setIsSubmitting(false)
-    setStep('success')
-    onSuccess?.(complianceRecord)
+    try {
+      await repository.save(complianceRecord)
+      setSaveError(null)
+      setStep('success')
+      onSuccess?.(complianceRecord)
+    } catch {
+      setSaveError('Failed to save record. Please try again.')
+      setStep('form')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -252,6 +261,15 @@ export const IntakeForm: FC<IntakeFormProps> = ({ repository, assessedBy, onSucc
       <h2 id={`${formId}-title`} className="text-lg font-semibold text-text mb-6">
         New Client Assessment
       </h2>
+
+      {saveError && (
+        <div
+          role="alert"
+          className="mb-4 p-4 rounded-card border border-error/30 bg-error/5 text-error text-sm"
+        >
+          {saveError}
+        </div>
+      )}
 
       {liveClassification && (
         <div
