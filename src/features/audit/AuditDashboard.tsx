@@ -79,9 +79,6 @@ export const AuditDashboard: FC<AuditDashboardProps> = ({ clients, complianceRec
             className="w-full bg-card text-sm"
             aria-label="Branch distribution by risk tier"
           >
-            <caption className="sr-only">
-              Distribution of clients by branch and risk tier
-            </caption>
             <thead>
               <tr className="border-b border-neutral/20 bg-background">
                 <th scope="col" className="px-4 py-3 text-left font-semibold text-text">
@@ -138,9 +135,6 @@ export const AuditDashboard: FC<AuditDashboardProps> = ({ clients, complianceRec
           </h3>
           <div className="overflow-x-auto rounded-card shadow-card">
             <table className="w-full bg-card text-sm" aria-label="Assessment audit log">
-              <caption className="sr-only">
-                Log of compliance assessments recorded via intake form
-              </caption>
               <thead>
                 <tr className="border-b border-neutral/20 bg-background">
                   <th scope="col" className="px-4 py-3 text-left font-semibold text-text">

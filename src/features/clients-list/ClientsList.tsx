@@ -412,9 +412,9 @@ const ClientDetailPanel: FC<ClientDetailPanelProps> = ({ client }) => {
             Findings ({findings.length})
           </h3>
           <ul className="space-y-2" aria-label="Compliance findings">
-            {findings.map((finding, index) => (
+            {findings.map((finding) => (
               <li
-                key={index}
+                key={`${finding.code}-${finding.field ?? finding.description}`}
                 className="flex items-start gap-2 bg-error/5 border border-error/20 rounded p-2"
               >
                 <span className="text-error text-xs font-semibold shrink-0">{finding.severity}</span>
