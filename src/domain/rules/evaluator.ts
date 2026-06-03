@@ -20,8 +20,8 @@ export function evaluateCondition(
       return String(fieldValue).toLowerCase() === String(condition.value).toLowerCase()
     }
     case 'in': {
-      const candidates = condition.value as string[]
-      return candidates.some(
+      if (!Array.isArray(condition.value)) return false
+      return condition.value.some(
         (candidate) => String(fieldValue).toLowerCase() === candidate.toLowerCase(),
       )
     }

@@ -5,6 +5,7 @@ import { IntakeForm } from '../features/intake/IntakeForm'
 import { AuditDashboard } from '../features/audit/AuditDashboard'
 import { FindingsPanel } from '../features/findings/FindingsPanel'
 import { DesignSystemDemo } from '../features/design-system/DesignSystemDemo'
+import { RulesetInspector } from '../features/ruleset/RulesetInspector'
 import { InMemoryComplianceRepository } from '../data/repositories/InMemoryComplianceRepository'
 import { useCsvClients } from '../lib/useCsvClients'
 import type { ComplianceRecord } from '../domain/model/types'
@@ -14,6 +15,7 @@ const NAV_LINKS = [
   { to: '/intake', label: 'New Assessment' },
   { to: '/audit', label: 'Audit Dashboard' },
   { to: '/findings', label: 'Findings' },
+  { to: '/ruleset', label: 'Rules' },
   { to: '/design-system', label: 'Design System' },
 ]
 
@@ -136,6 +138,7 @@ export const AppShell: FC = () => {
             element={<AuditDashboard clients={clients} complianceRecords={complianceRecords} />}
           />
           <Route path="/findings" element={<FindingsPanel clients={clients} />} />
+          <Route path="/ruleset" element={<RulesetInspector />} />
           <Route path="/design-system" element={<DesignSystemDemo />} />
         </Routes>
       </main>

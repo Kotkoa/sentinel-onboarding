@@ -13,6 +13,8 @@
 ## Process — хронология промптов
 
 <!-- AUTO: сюда хук дописывает саммари каждого ввода пользователя -->
+- [2026-06-03 19:54] prompt: исправь критичное
+- [2026-06-03 19:45] prompt: <ide_selection>The user selected the lines 181 to 181 from /Users/kotkoa/.claude/plans/client-onboarding-csv-candidate-instruc-glistening-wigderson.md: tailwindcss-development This may or may not be related to the current task.</ide_selection> пометь шаг 3 выполне
 - [2026-06-03 19:41] prompt: <ide_opened_file>The user opened the file /Users/kotkoa/dev/sentinel-onboarding/WORKLOG.md in the IDE. This may or may not be related to the current task.</ide_opened_file> да
 - [2026-06-03 19:32] prompt: выполнить шаг 3
 - [2026-06-03 19:27] prompt: <ide_selection>The user selected the lines 181 to 181 from /Users/kotkoa/.claude/plans/client-onboarding-csv-candidate-instruc-glistening-wigderson.md: tailwindcss-development This may or may not be related to the current task.</ide_selection> запустить проект и �
@@ -52,6 +54,8 @@
 - [step-2-browser] Браузерная валидация шага 2: (1) Clients — 46/46 строк, CLT-005/017/031 с Mismatch-бейджем; (2) Drawer CLT-005 — computed HIGH vs recorded LOW, 2 CRITICAL findings; (3) IntakeForm — live-классификация HIGH при PEP=Yes (aria-live работает); (4) EDD guard — submit HIGH+APPROVED заблокирован с error-алертом; (5) Audit Dashboard — 46 total, 39% HIGH, 14 findings, branch distribution верна; (6) Findings — 14 CRITICAL, эталонные CLT-005/009/012/017/023/027/031/039 присутствуют. Консоль: 0 errors.
 - [step-3] 210/210 тестов зелёных. Новые компоненты: Card, Field (с hint/error/required), DataTable (generic), StatusPill (5 вариантов), Toast+ToastContainer (auto-dismiss, aria-live). AppShell выделен в src/app/AppShell.tsx. Демо-страница /design-system: все примитивы, цветовые токены, типографика, интерактивные примеры (dialog, toasts). Build чистый (TS strict). jest-axe 0 нарушений на каждом компоненте.
 - [step-3-review] Code review выявил 7 CONFIRMED находок. Исправлено всё: (1) Toast dismiss-кнопка 24px → min-h-11 min-w-11 (44px); (2) AppShell `<p>` → `<h1>` — теперь h1 присутствует на всех маршрутах; (3) Toast error-variant role="status" → role="alert" + aria-live="assertive"; (4) repository из module scope → useRef внутри компонента (HMR-safe); (5) Field + Select id из label.replace() → useId() (нет коллизий); (6) Field + Select убраны role="alert" на error-span (дублировали aria-describedby); (7) мёртвый toastId удалён. 210/210 после фиксов.
+- [step-4] 257/257 тестов зелёных. TDD: 47 новых тестов. (1) evaluator.step4.test.ts — per-operator (eq/in/gt/gte на валидных, null, garbage входах), тотальность, AND-compound short-circuit, 3 configurability-теста (порог, расширение страны, удаление правила); (2) BundledRulesetRepository + 5 тестов (4 HIGH, 3 MEDIUM, compound 2-условия); (3) RulesetInspector — read-only таблица активного ruleset по tier, версия, effectiveFrom, форматирование операторов и значений условий, маршрут /rules в nav; (4) Card расширен aria-label/aria-labelledby для корректной section-семантики. Build чистый.
+- [step-4-review] Code review выявил 2 CONFIRMED + 3 PLAUSIBLE. Исправлено критичное: (1) evaluator.ts 'in' branch — добавлен Array.isArray guard перед .some(); без него ruleset с non-array value ломал totality guarantee и крэшил всю классификацию; (2) RulesetInspector useEffect — добавлен .catch() + cancelled-флаг для cleanup; без .catch() любой rejected promise оставлял isLoading=true навсегда, ветка "Failed to load" была unreachable. 258/258 после фиксов.
 
 ---
 
