@@ -40,6 +40,8 @@
 > Как убеждался, что приложение работает корректно: тесты, code-review, a11y-аудиты, ручные проверки, сверки с CSV.
 
 - [step-0] Hook `worklog-prompt.sh` протестирован на 4 кейсах (обычный промпт, slash-команда, пустой ввод, битый JSON) — все exit=0, мусора в чат нет, многострочный prompt схлопывается в одну строку под AUTO-маркером. Скилл `/worklog` и `UserPromptSubmit` hook зарегистрированы в `.claude/settings.local.json`. AC Шага 0 выполнены.
+- [step-1] `npm run test:run` — 2/2 зелёных (sanity + CSV fixture). `npm run build` — TS-проверка + vite build чисто. `npm run lint` — 0 ошибок, 0 warnings. Strict TS-флаги: strict, noUncheckedIndexedAccess, noUnusedLocals/Parameters, noImplicitReturns. Tailwind v4 @theme с Halcyon-токенами. jest-axe подключён через setup.ts.
+- [step-1-review] Code review выявил 2 блокера: `RawCsvRow` поля не совпадали с реальными CSV-колонками (country_of_tax_residence, risk_classification, documentation_complete — нет nationality). Исправлено. Также: lazy Supabase init, .gitignore покрывает .env.*, coverage thresholds 80%, eslint ecmaVersion 2022. Все 3 проверки зелёные после фиксов.
 
 ---
 
@@ -50,3 +52,4 @@
 - [setup] Стек Vite+React+TS+Tailwind v4; Supabase за `ComplianceRepository`; rules engine как данные (data-driven), не код. Шаги 2-6 на InMemoryRepository, Supabase в шаге 7.
 - [setup] Процесс оценивается отдельно → Шаг 0 = worklog-инфраструктура (hook + скилл) до старта кода.
 - [testing] Тесты (vitest) — обязательная часть КАЖДОГО шага, выводятся из AC и фиксируют бизнес-логику. В план добавлен сквозной раздел «Стратегия тестирования» + блок Testing(vitest) в каждый шаг. Ключевые бизнес-тесты: golden-dataset findings (CLT-005/017/031 и т.д.), configurability движка правил (rules change without code deploy), business-rule guard в intake-форме (нельзя HIGH+APPROVED без EDD), KPI-сверка с CSV. Domain-шаги (2,4,9) — TDD.
+- [step-1] Boilerplate создан вручную (npm create vite не работает в непустой директории). Выбор esbuild вместо terser как минификатор — terser не bundled в vite v6, esbuild достаточен для прототипа. vitest.config.ts использует mergeConfig+vite.config.ts для разрешения конфликта типов vitest/vite Plugin.

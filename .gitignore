@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+coverage/
+
+# Environment (NEVER commit secrets)
+.env
+.env.*
+!.env.example
+
+# Editor
+.DS_Store
+*.local
+.vscode/
+.idea/
+
+# TypeScript build info
+*.tsbuildinfo
+node_modules/.tmp/
