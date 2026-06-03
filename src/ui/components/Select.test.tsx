@@ -38,7 +38,7 @@ describe('Select', () => {
 
   it('shows error message when error prop is provided', () => {
     render(<Select label="Risk Tier" options={options} error="This field is required" />)
-    expect(screen.getByRole('alert')).toHaveTextContent('This field is required')
+    expect(screen.getByText('This field is required')).toBeInTheDocument()
   })
 
   it('sets aria-invalid when error is present', () => {

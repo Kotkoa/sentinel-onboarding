@@ -1,4 +1,4 @@
-import type { FC, SelectHTMLAttributes } from 'react'
+import { type FC, type SelectHTMLAttributes, useId } from 'react'
 
 interface SelectOption {
   value: string
@@ -19,7 +19,8 @@ export const Select: FC<SelectProps> = ({
   className = '',
   ...rest
 }) => {
-  const selectId = id ?? `select-${label.toLowerCase().replace(/\s+/g, '-')}`
+  const generatedId = useId()
+  const selectId = id ?? generatedId
   const errorId = error ? `${selectId}-error` : undefined
 
   return (
@@ -48,7 +49,7 @@ export const Select: FC<SelectProps> = ({
         ))}
       </select>
       {error && (
-        <span id={errorId} role="alert" className="text-xs text-error">
+        <span id={errorId} className="text-xs text-error">
           {error}
         </span>
       )}
