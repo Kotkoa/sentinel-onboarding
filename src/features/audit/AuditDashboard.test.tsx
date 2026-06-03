@@ -68,6 +68,22 @@ describe('AuditDashboard', () => {
     expect(screen.getByLabelText(`Open findings: ${kpis.openFindingsCount}`)).toBeInTheDocument()
   })
 
+  it('renders clients with findings KPI', () => {
+    const clients = loadCsvClients()
+    const kpis = computeKpis(clients)
+    render(<AuditDashboard clients={clients} complianceRecords={[]} />)
+    expect(
+      screen.getByLabelText(`Clients with findings: ${kpis.clientsWithFindingsCount}`),
+    ).toBeInTheDocument()
+  })
+
+  it('renders missing RM attributability gap KPI', () => {
+    const clients = loadCsvClients()
+    const kpis = computeKpis(clients)
+    render(<AuditDashboard clients={clients} complianceRecords={[]} />)
+    expect(screen.getByLabelText(`Missing RM: ${kpis.missingRmPercent}%`)).toBeInTheDocument()
+  })
+
   it('renders branch distribution table', () => {
     const clients = loadCsvClients()
     render(<AuditDashboard clients={clients} complianceRecords={[]} />)

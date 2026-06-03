@@ -3,31 +3,30 @@ import { computeKpis, computeBranchDistribution, nullsLastComparator } from './k
 import { loadCsvClients } from '../test/helpers'
 
 describe('computeKpis', () => {
-  it('total equals number of valid client records', () => {
+  it('total equals 46 (hand-counted from CSV fixture)', () => {
     const clients = loadCsvClients()
     const kpis = computeKpis(clients)
     expect(kpis.total).toBe(46)
   })
 
-  it('highRiskCount matches hand-counted HIGH clients from CSV', () => {
+  it('highRiskCount equals 18 (hand-counted: PEP/sanctions/adverse_media/high-risk country)', () => {
     const clients = loadCsvClients()
     const kpis = computeKpis(clients)
-    const manualHighCount = clients.filter((client) => client.classification.tier === 'HIGH').length
-    expect(kpis.highRiskCount).toBe(manualHighCount)
-    expect(kpis.highRiskCount).toBeGreaterThan(0)
+    expect(kpis.highRiskCount).toBe(18)
   })
 
-  it('highRiskPercent is rounded percentage', () => {
+  it('highRiskPercent equals 39 (18/46 rounded)', () => {
     const clients = loadCsvClients()
     const kpis = computeKpis(clients)
-    expect(kpis.highRiskPercent).toBe(Math.round((kpis.highRiskCount / kpis.total) * 100))
+    expect(kpis.highRiskPercent).toBe(39)
   })
 
-  it('openFindingsCount equals total number of findings across all clients', () => {
+  it('openFindingsCount equals total findings across all clients (dataset-driven)', () => {
     const clients = loadCsvClients()
     const kpis = computeKpis(clients)
     const manualTotal = clients.flatMap((client) => client.findings).length
     expect(kpis.openFindingsCount).toBe(manualTotal)
+    expect(kpis.openFindingsCount).toBeGreaterThan(0)
   })
 
   it('clientsWithFindingsCount equals clients with at least one finding', () => {
@@ -37,13 +36,10 @@ describe('computeKpis', () => {
     expect(kpis.clientsWithFindingsCount).toBe(manualCount)
   })
 
-  it('missingRmPercent reflects clients with MISSING_RM finding', () => {
+  it('missingRmPercent equals 7 (3 missing RM out of 46, rounded)', () => {
     const clients = loadCsvClients()
     const kpis = computeKpis(clients)
-    const missingRmCount = clients.filter((client) =>
-      client.findings.some((finding) => finding.code === 'MISSING_RM'),
-    ).length
-    expect(kpis.missingRmPercent).toBe(Math.round((missingRmCount / clients.length) * 100))
+    expect(kpis.missingRmPercent).toBe(7)
   })
 
   it('returns zeros for empty clients array', () => {
@@ -58,19 +54,61 @@ describe('computeKpis', () => {
 })
 
 describe('computeBranchDistribution', () => {
-  it('returns one entry per unique branch', () => {
+  it('returns 4 entries — one per branch in the CSV', () => {
     const clients = loadCsvClients()
     const distribution = computeBranchDistribution(clients)
-    const branches = clients.map((client) => client.record.branch ?? 'Unknown')
-    const uniqueBranches = new Set(branches)
-    expect(distribution.length).toBe(uniqueBranches.size)
+    expect(distribution.length).toBe(4)
+  })
+
+  it('Canary Wharf: 11 total, 4 HIGH, 2 MEDIUM, 5 LOW (hand-counted)', () => {
+    const clients = loadCsvClients()
+    const distribution = computeBranchDistribution(clients)
+    const branch = distribution.find((branchEntry) => branchEntry.branch === 'Canary Wharf')
+    expect(branch).toBeDefined()
+    expect(branch!.count).toBe(11)
+    expect(branch!.highCount).toBe(4)
+    expect(branch!.mediumCount).toBe(2)
+    expect(branch!.lowCount).toBe(5)
+  })
+
+  it('Edinburgh: 12 total, 6 HIGH, 3 MEDIUM, 3 LOW (hand-counted)', () => {
+    const clients = loadCsvClients()
+    const distribution = computeBranchDistribution(clients)
+    const branch = distribution.find((branchEntry) => branchEntry.branch === 'Edinburgh')
+    expect(branch).toBeDefined()
+    expect(branch!.count).toBe(12)
+    expect(branch!.highCount).toBe(6)
+    expect(branch!.mediumCount).toBe(3)
+    expect(branch!.lowCount).toBe(3)
+  })
+
+  it('Manchester: 11 total, 4 HIGH, 6 MEDIUM, 1 LOW (hand-counted)', () => {
+    const clients = loadCsvClients()
+    const distribution = computeBranchDistribution(clients)
+    const branch = distribution.find((branchEntry) => branchEntry.branch === 'Manchester')
+    expect(branch).toBeDefined()
+    expect(branch!.count).toBe(11)
+    expect(branch!.highCount).toBe(4)
+    expect(branch!.mediumCount).toBe(6)
+    expect(branch!.lowCount).toBe(1)
+  })
+
+  it('Mayfair: 12 total, 4 HIGH, 3 MEDIUM, 5 LOW (hand-counted)', () => {
+    const clients = loadCsvClients()
+    const distribution = computeBranchDistribution(clients)
+    const branch = distribution.find((branchEntry) => branchEntry.branch === 'Mayfair')
+    expect(branch).toBeDefined()
+    expect(branch!.count).toBe(12)
+    expect(branch!.highCount).toBe(4)
+    expect(branch!.mediumCount).toBe(3)
+    expect(branch!.lowCount).toBe(5)
   })
 
   it('total across all branches equals total clients', () => {
     const clients = loadCsvClients()
     const distribution = computeBranchDistribution(clients)
     const total = distribution.reduce((sum, branch) => sum + branch.count, 0)
-    expect(total).toBe(clients.length)
+    expect(total).toBe(46)
   })
 
   it('per-branch counts sum to branch total', () => {
@@ -79,16 +117,6 @@ describe('computeBranchDistribution', () => {
     for (const branch of distribution) {
       expect(branch.highCount + branch.mediumCount + branch.lowCount).toBe(branch.count)
     }
-  })
-
-  it('includes Mayfair, Edinburgh, Manchester, Canary Wharf branches', () => {
-    const clients = loadCsvClients()
-    const distribution = computeBranchDistribution(clients)
-    const branchNames = distribution.map((branch) => branch.branch)
-    expect(branchNames).toContain('Mayfair')
-    expect(branchNames).toContain('Edinburgh')
-    expect(branchNames).toContain('Manchester')
-    expect(branchNames).toContain('Canary Wharf')
   })
 })
 
