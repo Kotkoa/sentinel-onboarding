@@ -49,3 +49,4 @@
 
 - [setup] Стек Vite+React+TS+Tailwind v4; Supabase за `ComplianceRepository`; rules engine как данные (data-driven), не код. Шаги 2-6 на InMemoryRepository, Supabase в шаге 7.
 - [setup] Процесс оценивается отдельно → Шаг 0 = worklog-инфраструктура (hook + скилл) до старта кода.
+- [testing] Тесты (vitest) — обязательная часть КАЖДОГО шага, выводятся из AC и фиксируют бизнес-логику. В план добавлен сквозной раздел «Стратегия тестирования» + блок Testing(vitest) в каждый шаг. Ключевые бизнес-тесты: golden-dataset findings (CLT-005/017/031 и т.д.), configurability движка правил (rules change without code deploy), business-rule guard в intake-форме (нельзя HIGH+APPROVED без EDD), KPI-сверка с CSV. Domain-шаги (2,4,9) — TDD.
